@@ -5,6 +5,7 @@ import pprint
 
 
 BASE_URL = 'https://dictionary.yandex.net/api/v1/dicservice.json'
+langs = None
 
 
 def get_langs():
