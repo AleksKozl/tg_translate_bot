@@ -5,8 +5,6 @@ from loader import bot
 from states.state_word_translate import WordTranslate
 from utils.pretty_translate_YaDict import pretty_text
 import database.db_func as db_func
-from pprint import pprint
-
 
 @bot.message_handler(commands=['language_choice'])
 def selection_language(message: Message) -> None:
@@ -63,8 +61,6 @@ def get_word(message: Message) -> None:
 def get_word_translate(message: Message) -> None:
     language_selected = db_func.db_get_language(user_id=message.from_user.id)
     lookup_response = YaDict_request.lookup(language_selected, message.text)
-
-    pprint(lookup_response.json()['def'])
 
     if lookup_response.status_code != 200 or len(lookup_response.json()['def']) == 0:
         bot.send_message(message.chat.id, text=('Не удалось выполнить перевод:', message.text))
