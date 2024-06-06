@@ -10,6 +10,9 @@ else:
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 YADICT_API_KEY = os.getenv('YADICT_API_KEY')
 YATRNSLT_API_KEY = os.getenv('YATRNSLT_API_KEY')
+
+DB_PATH = os.path.abspath(os.path.join('database', 'users_data.db'))
+
 DEFAULT_COMMANDS = (
     ('start', 'Запустить бота'),
     ('help', 'Вывести справку'),
@@ -20,4 +23,3 @@ DEFAULT_COMMANDS = (
     ('language_choice', 'Выбрать направление перевода')
 )
 
-# DEFAULT_COMMANDS_DICT = {i_tpl[0]: i_tpl[1] for i_tpl in DEFAULT_COMMANDS}
