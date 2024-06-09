@@ -4,7 +4,6 @@ import requests
 
 
 BASE_URL = 'https://dictionary.yandex.net/api/v1/dicservice.json'
-langs = None
 
 
 def get_langs():
@@ -22,3 +21,6 @@ def lookup(lang, text, ui='ru'):
         'ui': ui
     })
     return response
+
+
+langs = get_langs()

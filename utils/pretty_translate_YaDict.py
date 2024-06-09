@@ -128,21 +128,22 @@ def pretty_text(word, language, translate_json):
     text += '    Варианты перевода: \n'
 
     for i_translation in db_func.db_get_all_translation(word=word, language=language):
-        text += '        {translation_word}/(|{translation_translit}|) - {translation_translate}\n'.format(
+        text += '\n        {translation_word}/(|{translation_translit}|) - {translation_translate}\n'.format(
             translation_word=i_translation.translation_word,
             translation_translit=i_translation.translation_translit,
             translation_translate=i_translation.translation_translate
         )
-
-        for i_synonym in db_func.db_get_all_synonyms(
+        synonyms = db_func.db_get_all_synonyms(
                 translation_word=i_translation.translation_word,
                 language=i_translation.translation_language
-        ):
-            text += ('        Синонимы:\n'
-                     '                {synonym_word}/(|{synonym_translit}|) - {synonym_translate}\n').format(
-                synonym_word=i_synonym.synonym_word,
-                synonym_translit=i_synonym.synonym_translit,
-                synonym_translate=i_synonym.synonym_translate
-            )
+        )
+        if len(synonyms) > 0:
+            text += '        Синонимы:\n'
+            for i_synonym in synonyms:
+                text += '                {synonym_word}/(|{synonym_translit}|) - {synonym_translate}\n'.format(
+                    synonym_word=i_synonym.synonym_word,
+                    synonym_translit=i_synonym.synonym_translit,
+                    synonym_translate=i_synonym.synonym_translate
+                )
 
     return text
