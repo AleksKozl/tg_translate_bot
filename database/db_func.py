@@ -1,4 +1,4 @@
-from peewee import IntegrityError
+from peewee import IntegrityError, DoesNotExist
 
 from database.db_models import User, Word, Translation, Synonym
 from database.db_control import db_sqlite
@@ -43,14 +43,12 @@ def db_set_state(user_id: int, state: str):
 
 
 def db_add_word(word: str):
-    return Word.get_or_create(word=word)
+    try:
+        return db_get_word(word=word)
 
-    # try:
-    #     return db_get_word(word=word)
-    #
-    # except DoesNotExist:
-    #
-    #     return Word.create(word=word)
+    except DoesNotExist:
+
+        return Word.create(word=word)
 
 
 def db_get_word(word: str):
@@ -70,7 +68,7 @@ def db_add_translation(
 ):
     try:
         word_obj = db_get_word(word=word)
-        Translation.create(
+        Translation.get_or_create(
             word_id=word_obj.word_id,
             translation_language=language,
             translation_word=translation_word,
@@ -122,7 +120,7 @@ def db_add_synonym(
             language=language
         )
 
-        Synonym.create(
+        Synonym.get_or_create(
             translation_id=translate_word_obj.translation_id,
             synonym_word=synonym_word,
             synonym_translit=synonym_translit,
