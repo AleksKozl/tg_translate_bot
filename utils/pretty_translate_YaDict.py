@@ -182,7 +182,7 @@ def to_database(word: str, language: str, translate_json: dict) -> None:
                 )
 
 
-def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_translations: int) -> str:
+def pretty_text(word: str, language: str, translate_json: dict) -> str:
 
     """
     Преобразует входящий словарь в более читаемый вид.
@@ -192,7 +192,6 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
         language (str) - Текущий язык (направление) перевода,
                          атрибут user_selected_language (str) объекта <class User> из БД.
         translate_json (dict) - Пеедаваемый словарь с результатами запроса перевода.
-        max_numbers_of_translations (int) - Максимальное количество выводимых вариантов перевода
 
     Parameter:
         text (str) - Итоговая строка с вариантами перевода, их синонимами и транскрипциями.
@@ -208,7 +207,7 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
     text = f'Ваш перевод готов! \n'
     text += '    Варианты перевода: \n'
 
-    for i_count, i_translation in enumerate(db_func.db_get_all_translation(word=word, language=language)):
+    for i_translation in db_func.db_get_all_translation(word=word, language=language):
         text += '\n        {translation_word}/(|{translation_translit}|) - {translation_translate}\n'.format(
             translation_word=i_translation.translation_word,
             translation_translit=i_translation.translation_translit,
@@ -226,8 +225,5 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
                     synonym_translit=i_synonym.synonym_translit,
                     synonym_translate=i_synonym.synonym_translate
                 )
-
-        if i_count == max_numbers_of_translations - 1:
-            break
 
     return text

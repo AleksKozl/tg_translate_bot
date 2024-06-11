@@ -16,10 +16,9 @@ import database.db_func as db_func
 Список функций:
     welcome_to_low - Обработчик нажатия кнопок ведущих к выполнению сценария 'low'.
     language_set - Обработчик нажатия кнопок клавиатуры по выбору направления перевода.
-    language_check - Проверяет наличия выбранного направления перевода среди направлений 'Яндекс.Словаря'.
-    get_numbers_of_translations - Проверяет и запоминает максимальное количество вариантов перевода.
+    language_check - Проверяет наличия выбранного направления перевода среди направлений 'Яндекс.Словаря'
     get_word - Принимает слово для перевода.
-    get_word_translate - Совершает запрос о переводе к 'Яндекс.Словарю' через модуль YaDict_request.
+    get_word_translate - Совершает запрос о переводе к 'Яндекс.Словарю' через модуль YaDict_request
 
 """
 
@@ -111,14 +110,13 @@ def language_set(callback: CallbackQuery) -> None:
         bot.edit_message_text(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
-            text=f'Принято. Ваше направление перевода: "{callback.data}"\n\n'
-                 f'Введите максимальное количество вариантов перевода, которое мне нужно вывести:'
+            text=f'Принято. Ваше направление перевода: "{callback.data}"\n'
+                 f'Введите слово для перевода:'
         )
 
         db_func.db_set_language(user_id=callback.from_user.id, language=callback.data)
-
-        bot.set_state(callback.from_user.id, WordTranslate.numbers_of_translations, callback.message.chat.id)
-        db_func.db_set_state(user_id=callback.from_user.id, state='numbers_of_translations')
+        bot.set_state(callback.from_user.id, WordTranslate.word, callback.message.chat.id)
+        db_func.db_set_state(user_id=callback.from_user.id, state='word')
 
 
 @bot.message_handler(state=WordTranslate.language)
@@ -153,61 +151,14 @@ def language_check(message: Message) -> None:
         bot.edit_message_text(
             chat_id=message.chat.id,
             message_id=message.id,
-            text=f'Принято. Ваше направление перевода: "{message.text}"\n\n'
-                 f'Введите максимальное количество вариантов перевода, которое мне нужно вывести:'
+            text=f'Принято. Ваше направление перевода: "{message.text}"\n'
+                 f'Введите слово для перевода:'
         )
 
         db_func.db_set_language(user_id=message.from_user.id, language=message.text)
 
-        bot.set_state(message.from_user.id, WordTranslate.numbers_of_translations, message.chat.id)
-        db_func.db_set_state(user_id=message.from_user.id, state='numbers_of_translations')
-
-
-@bot.message_handler(state=WordTranslate.numbers_of_translations)
-def get_numbers_of_translations(message: Message) -> None:
-
-    """
-    Обработчик состояния пользователя, принимает состояние 'numbers_of_translations'.
-    Проверяет и запоминает максимальное количество вариантов перевода для вывода пользователю.
-    Если в сообщение не целое число или оно меньше нуля, предлагает повторить ввод.
-
-    Args:
-        message (Message) - Сообщение пользователя
-
-    Parameter:
-        max_numb (int) - Максимальное количество вариантов перевода
-
-    Returns:
-        None
-
-    Raises:
-        ValueError
-    """
-
-    try:
-
-        max_numb = int(message.text)
-        if max_numb > 0:
-
-            with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-                data['numbers_of_translations'] = max_numb
-
-                bot.send_message(
-                    message.chat.id,
-                    text=f'Принято, покажу максимум {max_numb} вариантов перевода.\n\n'
-                         f'Теперь введите слово которое мне нужно перевести:'
-                )
-
-                bot.set_state(message.from_user.id, WordTranslate.word, message.chat.id)
-                db_func.db_set_state(user_id=message.from_user.id, state='word')
-        else:
-            raise ValueError
-
-    except ValueError:
-        bot.send_message(
-            message.chat.id,
-            text='Максимальное количество переводов должно быть целым числом и больше нуля'
-        )
+        bot.set_state(message.from_user.id, WordTranslate.word, message.chat.id)
+        db_func.db_set_state(user_id=message.from_user.id, state='word')
 
 
 @bot.message_handler(state=WordTranslate.word)
@@ -282,16 +233,15 @@ def get_word_translate(message: Message) -> None:
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['word_translate'] = lookup_response.json()
             db_func.db_add_word(data['word'])
-            data['translate_result'] = pretty_text(
-                    word=data['word'],
-                    language=db_func.db_get_language(user_id=message.from_user.id),
-                    translate_json=data['word_translate'],
-                    max_numbers_of_translations=data['numbers_of_translations']
-                )
+
             bot.send_message(
                 message.chat.id,
-                text=data['translate_result'],
+                text=pretty_text(
+                    word=data['word'],
+                    language=db_func.db_get_language(user_id=message.from_user.id),
+                    translate_json=data['word_translate']
                 )
+            )
 
             bot.send_message(
                 message.chat.id,
