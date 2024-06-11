@@ -1,7 +1,19 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def low_exit_or_select_markup():
+def low_exit_or_select_markup() -> InlineKeyboardMarkup:
+
+    """
+    Создает клавиатуру по с выбором действия - "Выход в главное меню" или "Смена языка".
+
+    Parameter:
+        keyboard (InlineKeyboardMarkup) - Объект клавиатуры
+        button_xxx (InlineKeyboardButton) - Объекты кнопок
+
+    Returns:
+        <class InlineKeyboardMarkup>
+    """
+
     keyboard = InlineKeyboardMarkup(row_width=2)
 
     button_main_menu = InlineKeyboardButton(text='Выйти в главное меню', callback_data='main_menu')
