@@ -7,7 +7,16 @@ from database.db_func import db_set_state
 
 
 @bot.callback_query_handler(func=lambda callback: callback.data == 'main_menu')
-def main_menu(callback: CallbackQuery):
+def main_menu(callback: CallbackQuery) -> None:
+
+    """
+    Обработчик нажатия кнопок клавиатуры (main_keyboard.main_markup).
+    "Сбрасывает" состояние пользователя и редактирует предыдущее сообщение.
+    Выдает клавиатуру-главное меню (main_keyboard.main_markup)
+
+    Returns:
+        None
+    """
 
     bot.set_state(callback.from_user.id, WordTranslate.wait, callback.message.chat.id)
     db_set_state(user_id=callback.from_user.id, state='wait')

@@ -1,7 +1,19 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def low_languages_markup():
+def low_languages_markup() -> InlineKeyboardMarkup:
+
+    """
+    Создает клавиатуру по выбору языка перевода.
+
+    Parameter:
+        keyboard (InlineKeyboardMarkup) - Объект клавиатуры
+        button_xxx (InlineKeyboardButton) - Объекты кнопок
+
+    Returns:
+        <class InlineKeyboardMarkup>
+    """
+
     keyboard = InlineKeyboardMarkup(row_width=2)
 
     button_ru_en = InlineKeyboardButton(text='Русский - Английский', callback_data='ru-en')

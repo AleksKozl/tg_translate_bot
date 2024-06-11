@@ -1,7 +1,41 @@
 import database.db_func as db_func
 
 
-def cut(translate_json):
+"""
+
+Модуль отвечает за обработку  данных (в формате JSON) полученных от запроса к 'Яндекс.Словарю'.
+
+Список функций:
+    cut - 'Обрезает' лишние данные.
+    to_database - Вносит полученные от функции cut() данные в БД.
+    pretty_text - Выдает единую строку с переводами, транскрипциями и синонимами полученными от БД.
+
+"""
+
+
+def cut(translate_json: dict) -> dict:
+
+    """
+    Обрезает лишние данные от входящего словаря.
+    Оставляет варианты перевода, их синонимы и транскрипции.
+
+
+    Parameter:
+        text (dict) - Возвращаемый словарь с итоговыми данными
+        translations (List[str]) - Список всех вариантов перевода
+        mean (List[str]) - Список значений переводов
+        translit (List[str]) - Список транскрипций переводов
+        synonyms (List[str]) - Список синонимов переводов
+        synonyms_translit (List[str]) - Список транскрипций синонимов
+        means (List[str]) - Список значений синонимов для каждого варианта перевода
+
+    Args:
+        translate_json (dict) - Пеедаваемый словарь с результатами запроса перевода
+
+    Returns:
+        dict
+    """
+
     text = dict()
 
     for i_def in translate_json['def']:
@@ -90,8 +124,35 @@ def cut(translate_json):
     return text
 
 
-def to_database(word, language, translate_json):
+def to_database(word: str, language: str, translate_json: dict) -> None:
+
+    """
+    Добавляет в БД варианты перевода, их синонимы и транскрипции.
+
+    Args:
+        word (str) - Слово к которому пользователь запросил перевод
+        language (str) - Текущий язык (направление) перевода,
+                         атрибут user_selected_language (str) объекта <class User> из БД
+        translate_json (dict) - Пеедаваемый словарь с результатами запроса перевода
+
+    Parameter:
+        text (dict) - Словарь с 'обрезанными' данными
+
+        translate_word (str) - Вариант перевода
+        translate_means (str) - Значение варианта перевода
+        translate_synonyms (dict) - Словарь с синонимами для варианта перевода
+        translate_translit (str) - Транскрипция варианта перевода
+
+        synonym_word (str) - Синоним
+        synonym_translate (str) - Значение синонима
+        synonym_translit (str) - Транскрипция синонима
+
+    Returns:
+        None
+    """
+
     text = cut(translate_json)
+
     for i_translate in text['translations']:
         translate_word = i_translate['text']
         translate_means = i_translate.get('mean', word)
@@ -121,7 +182,26 @@ def to_database(word, language, translate_json):
                 )
 
 
-def pretty_text(word, language, translate_json):
+def pretty_text(word: str, language: str, translate_json: dict) -> str:
+
+    """
+    Преобразует входящий словарь в более читаемый вид.
+
+    Args:
+        word (str) - Слово к которому пользователь запросил перевод.
+        language (str) - Текущий язык (направление) перевода,
+                         атрибут user_selected_language (str) объекта <class User> из БД.
+        translate_json (dict) - Пеедаваемый словарь с результатами запроса перевода.
+
+    Parameter:
+        text (str) - Итоговая строка с вариантами перевода, их синонимами и транскрипциями.
+        synonyms (List[Synonym]) - Список всех объектов синонимов (<class Synonym>)
+                                   относящихся к конкретному варианту перевода.
+
+    Returns:
+        str
+    """
+
     to_database(word, language, translate_json)
 
     text = f'Ваш перевод готов! \n'
