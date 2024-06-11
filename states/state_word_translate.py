@@ -7,3 +7,4 @@ class WordTranslate(StatesGroup):
     word = State()
     word_translate = State()
     wait = State()
+    numbers_of_translations = State()
