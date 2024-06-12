@@ -1,1 +1,1 @@
-from . import state_word_translate
+from . import state_translation
