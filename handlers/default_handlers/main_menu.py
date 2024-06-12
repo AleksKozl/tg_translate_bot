@@ -1,6 +1,6 @@
 from telebot.types import CallbackQuery
 
-from states.state_word_translate import WordTranslate
+from states.state_translation import WordTranslate
 from loader import bot
 from keyboards.inline.main_keyboard import main_markup
 from database.db_func import db_set_state

@@ -2,7 +2,7 @@ from telebot.types import Message, CallbackQuery
 
 from YaAPI.YaDictAPI import YaDict_request
 from loader import bot
-from states.state_word_translate import WordTranslate
+from states.state_translation import WordTranslate
 from utils.pretty_translate_YaDict import pretty_text
 from keyboards.inline import low_languages_keyboard, low_exit_or_select_keyboard
 import database.db_func as db_func
@@ -86,7 +86,7 @@ def language_set(callback: CallbackQuery) -> None:
         bot.send_message(
             callback.message.id,
             text='Не удалось получить список направлений перевода.\n'
-                 'Не удачная попытка связи с "Яндекс.Словарь".\n'
+                 'Неудачная попытка связи с "Яндекс.Словарь".\n'
                  'Повторите попытку позднее.'
         )
         exit(1)
@@ -94,13 +94,11 @@ def language_set(callback: CallbackQuery) -> None:
     if callback.data == 'all':
 
         buf_langs = ' || '.join(YaDict_request.langs.json())
-        bot.send_message(
-            callback.message.chat.id,
-            text=buf_langs
-        )
-        bot.send_message(
-            callback.message.chat.id,
-            text='Напишите выбранное Вами направление как в этих примерах: ru-en, en-ru, en-de'
+
+        bot.edit_message_text(
+            chat_id=callback.message.chat.id,
+            message_id=callback.message.id,
+            text=buf_langs + '\n\nНапишите выбранное Вами направление как в этих примерах: ru-en, en-ru, en-de'
         )
 
         bot.set_state(callback.from_user.id, WordTranslate.language, callback.message.chat.id)
@@ -258,10 +256,11 @@ def get_word_translate(message: Message) -> None:
         После предлагает ввести еще одно слово
         или один из вариантов команд с кнопок клавиатуры low_exit_or_select_markup()
         модуля low_exit_or_select_keyboard
-        в которой предлагается выбор - выход в главное меню или выбор языка.
+        в которой предлагается выбор - выход в главное меню или выбор языка (повтор сценария сначала).
 
     Parameter:
-        language_selected (str) - Перевод
+        language_selected (str) - Текущий язык (направление) перевода,
+                                  атрибут user_selected_language (str) объекта <class User> из БД
         lookup_response (<class 'requests.models.Response'>) - Результат запроса о переводе
 
     Args:
