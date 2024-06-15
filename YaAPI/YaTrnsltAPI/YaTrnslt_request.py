@@ -10,7 +10,7 @@ api_token = YACLOUD_API_KEY
 folder_id = YACLOUD_FOLDER_ID
 
 
-def yatrnslt_translate(text: str, target_language: str) -> Response:
+def yatrnslt_translate(text: str, target_language: str,  source_language: str = None) -> Response:
 
     """
     Функция запроса перевода текста.
@@ -21,55 +21,26 @@ def yatrnslt_translate(text: str, target_language: str) -> Response:
     Args:
         text (str) - Текст для перевода
         target_language (str) - Выбранный язык перевода
-
-    Returns:
-        <class 'requests.models.Response'>
-    """
-
-    body = {
-        "targetLanguageCode": target_language,
-        "texts": text,
-        "folderId": folder_id,
-    }
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Api-Key {0}".format(api_token)
-    }
-
-    response = post(
-        url=BASE_URL + '/translate',
-        json=body,
-        headers=headers
-    )
-
-    return response
-
-
-def yatrnslt_translate_with_source_lang(text: str, source_language: str, target_language: str) -> Response:
-
-    """
-    Функция запроса перевода текста с указанием языка переводимого текста.
-
-    Parameter:
-        response (<class 'requests.models.Response'>) - Результат запроса
-
-    Args:
-        text (str) - Текст для перевода
         source_language (str) - Язык переводимого текста
-        target_language (str) - Выбранный язык перевода
 
 
     Returns:
         <class 'requests.models.Response'>
     """
 
-    body = {
-        "sourceLanguageCode": source_language,
-        "targetLanguageCode": target_language,
-        "texts": text,
-        "folderId": folder_id,
-    }
+    if source_language is None:
+        body = {
+            "targetLanguageCode": target_language,
+            "texts": text,
+            "folderId": folder_id,
+        }
+    else:
+        body = {
+            "sourceLanguageCode": source_language,
+            "targetLanguageCode": target_language,
+            "texts": text,
+            "folderId": folder_id,
+        }
 
     headers = {
         "Content-Type": "application/json",

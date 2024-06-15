@@ -8,12 +8,14 @@
 """
 
 
-def pretty_text(translate_json: dict) -> str:
+def pretty_text(translate_json: dict, text_for_translation: str) -> str:
+
     """
     Преобразует входящий словарь в более читаемый вид.
 
     Args:
         translate_json (dict) - Пеедаваемый словарь с результатами запроса перевода.
+        text_for_translation (str) - Переводимый текст.
 
     Parameter:
         text (str) - Итоговая строка с переводом.
@@ -26,8 +28,10 @@ def pretty_text(translate_json: dict) -> str:
 
     for i_translate in translate_json['translations']:
         text += i_translate['text']
+        if i_translate['text'] == text_for_translation:
+            text += '\n\n        Кажется Вы указали неверный язык переводимого текста.'
         detected_language = i_translate.get('detectedLanguageCode')
         if detected_language is not None:
-            text += f'\n        Кажется язык Вашего текста это - "{detected_language}" '
+            text += f'\n\n        Кажется язык Вашего текста это - "{detected_language}".'
 
     return text

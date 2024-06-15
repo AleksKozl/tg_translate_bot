@@ -9,7 +9,6 @@ import database.db_func as db_func
 
 
 """
-
 Модуль отвечает за обработку команды 'high'.
 Переводит слово полученное от пользователя по выбранному им направленю перевода.
 
@@ -100,6 +99,9 @@ def language_set(callback: CallbackQuery) -> None:
             text=YaTrnslt_request.langs_text + '\n\nНапишите код выбранного Вами языка как в этих примерах: ru, en, de'
         )
 
+        with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
+            data['message_id_with_all_langs'] = callback.message.id
+
         bot.set_state(callback.from_user.id, TextTranslate.target_language, callback.message.chat.id)
         db_func.db_set_state(user_id=callback.from_user.id, state='text_language')
 
@@ -151,10 +153,17 @@ def language_check(message: Message) -> None:
         bot.send_message(message.chat.id, text='Такого языка нет в списке. Попробуйте ещё раз.')
 
     else:
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+            all_langs_message_id = data['message_id_with_all_langs']
 
         bot.edit_message_text(
             chat_id=message.chat.id,
-            message_id=message.id,
+            message_id=all_langs_message_id,
+            text=f'Список всех языков скрыт.'
+        )
+
+        bot.send_message(
+            chat_id=message.chat.id,
             text=f'Принято. Ваш язык перевода: "{message.text}"\n'
                  f'Желаете выбрать язык переводимого текста?:',
             reply_markup=high_source_language_choice.high_source_language_markup()
@@ -199,12 +208,6 @@ def source_language_choice(callback: CallbackQuery) -> None:
 
     if callback.data == 'source_language_yes':
 
-        # bot.send_message(
-        #     callback.message.chat.id,
-        #     text='Введите язык, с которого нужно будет переводить:\n'
-        #          'Напишите код выбранного Вами языка как в этих примерах: ru, en, de'
-        # )
-
         bot.edit_message_text(
             chat_id=callback.message.chat.id,
             message_id=callback.message.id,
@@ -219,11 +222,6 @@ def source_language_choice(callback: CallbackQuery) -> None:
 
         with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
             data['source_language'] = None
-
-        # bot.send_message(
-        #     callback.message.chat.id,
-        #     text='Теперь введите текст который мне нужно перевести:'
-        # )
 
         bot.edit_message_text(
             chat_id=callback.message.chat.id,
@@ -334,17 +332,11 @@ def get_text_translate(message: Message) -> None:
         source_language = data['source_language']
         target_language = data['target_language']
 
-    if source_language is not None:
-        lookup_response = YaTrnslt_request.yatrnslt_translate_with_source_lang(
-            text=message.text,
-            source_language=source_language,
-            target_language=target_language
-        )
-    else:
-        lookup_response = YaTrnslt_request.yatrnslt_translate(
-            text=message.text,
-            target_language=target_language
-        )
+    lookup_response = YaTrnslt_request.yatrnslt_translate(
+        text=message.text,
+        target_language=target_language,
+        source_language=source_language
+    )
 
     if lookup_response.status_code != 200:
         bot.send_message(message.chat.id, text=f'Не удалось выполнить перевод.\n'
@@ -355,14 +347,10 @@ def get_text_translate(message: Message) -> None:
         bot.send_message(
             message.chat.id,
             text=pretty_text(
-                translate_json=lookup_response.json()
-            ),
-        )
-
-        bot.send_message(
-            message.chat.id,
-            text='Можете написать еще текст или выбрать действие на кнопках.',
-            reply_markup=high_exit_or_select_keyboard.high_exit_or_select_markup()
+                translate_json=lookup_response.json(),
+                text_for_translation=message.text
+            ) + '\n\nМожете написать еще текст или выбрать действие на кнопках.',
+            reply_markup=high_exit_or_select_keyboard.high_exit_or_select_markup(),
         )
 
         bot.set_state(message.from_user.id, TextTranslate.text, message.chat.id)
