@@ -209,7 +209,7 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
     text += '    Варианты перевода: \n'
 
     for i_count, i_translation in enumerate(db_func.db_get_all_translation(word=word, language=language)):
-        text += '\n        {translation_word}/(|{translation_translit}|) - {translation_translate}\n'.format(
+        text += '\n        {translation_word} / (|{translation_translit}|) - {translation_translate}\n'.format(
             translation_word=i_translation.translation_word,
             translation_translit=i_translation.translation_translit,
             translation_translate=i_translation.translation_translate
@@ -221,7 +221,7 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
         if len(synonyms) > 0:
             text += '        Синонимы:\n'
             for i_synonym in synonyms:
-                text += '                {synonym_word}/(|{synonym_translit}|) - {synonym_translate}\n'.format(
+                text += '                {synonym_word} / (|{synonym_translit}|) - {synonym_translate}\n'.format(
                     synonym_word=i_synonym.synonym_word,
                     synonym_translit=i_synonym.synonym_translit,
                     synonym_translate=i_synonym.synonym_translate
