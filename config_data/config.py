@@ -12,14 +12,18 @@ YADICT_API_KEY = os.getenv('YADICT_API_KEY')
 YACLOUD_API_KEY = os.getenv('YACLOUD_API_KEY')
 YACLOUD_FOLDER_ID = os.getenv('YACLOUD_FOLDER_ID')
 
+
 DB_PATH = os.path.abspath(os.path.join('database', 'users_data.db'))
+KEY_JSON_FILE_PATH = os.path.abspath(os.path.join('config_data', 'key.json'))
+TEMP_AUDIO_PATH = os.path.abspath(os.path.join('temp', 'audio'))
+
 
 DEFAULT_COMMANDS = (
     ('start', 'Запустить бота'),
-    ('help', 'Вывести справку по командам бота'),
-    ('history', 'Показать историю запросов'),
-    ('low', 'Перевод слова с помощью сервиса "Яндекс.Словарь"'),
-    ('high', 'Перевод текста с помощью сервиса "Яндекс.Переводчик"'),
+    ('help', 'Вывести справку по командам бота. ---'),
+    ('history', 'Показать историю запросов. ---'),
+    ('low', 'Перевод отдельных слов.'),
+    ('high', 'Перевод текстов.'),
     ('custom', '-------Вывод всех языков?? Может выбор того, что выводить?')
 )
 

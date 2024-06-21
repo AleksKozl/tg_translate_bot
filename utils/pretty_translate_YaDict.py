@@ -182,7 +182,7 @@ def to_database(word: str, language: str, translate_json: dict) -> None:
                 )
 
 
-def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_translations: int) -> str:
+def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_translations: int) -> tuple[str, str]:
 
     """
     Преобразует входящий словарь в более читаемый вид.
@@ -207,6 +207,7 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
 
     text = f'Ваш перевод готов! \n'
     text += '    Варианты перевода: \n'
+    first_translate = ''
 
     for i_count, i_translation in enumerate(db_func.db_get_all_translation(word=word, language=language)):
         text += '\n        {translation_word} / (|{translation_translit}|) - {translation_translate}\n'.format(
@@ -214,12 +215,18 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
             translation_translit=i_translation.translation_translit,
             translation_translate=i_translation.translation_translate
         )
+
         synonyms = db_func.db_get_all_synonyms(
                 translation_word=i_translation.translation_word,
                 language=i_translation.translation_language
         )
+
+        if i_count == 0:
+            first_translate += i_translation.translation_word
+
         if len(synonyms) > 0:
             text += '        Синонимы:\n'
+
             for i_synonym in synonyms:
                 text += '                {synonym_word} / (|{synonym_translit}|) - {synonym_translate}\n'.format(
                     synonym_word=i_synonym.synonym_word,
@@ -230,4 +237,4 @@ def pretty_text(word: str, language: str, translate_json: dict, max_numbers_of_t
         if i_count == max_numbers_of_translations - 1:
             break
 
-    return text
+    return text, first_translate

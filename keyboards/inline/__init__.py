@@ -1,4 +1,4 @@
 from . import main_keyboard
-from . import low_languages_keyboard
-from . import low_exit_or_select_keyboard
-
+from . import low_keyboards
+from . import high_keyboards
+from . import custom_keyboards

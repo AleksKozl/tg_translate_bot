@@ -1,9 +1,8 @@
-from peewee import IntegrityError, DoesNotExist
+from peewee import IntegrityError
 from typing import List
 
-from database.db_models import User, Word, Translation, Synonym
+from database.db_models import User, Word, Translation, Synonym, History
 from database.db_control import db_sqlite
-
 
 """
 
@@ -35,6 +34,11 @@ from database.db_control import db_sqlite
         db_get_synonym_by_id - Возвращает объект синонима из БД по id
         db_get_synonym_by_synonym_word - Возвращает объект синонима из БД по слову-синониму
         db_get_all_synonyms - Возвращает все объекты синонимов из БД по слову-переводу и языку
+        
+    Относятся к модели History:
+        db_add_to_history - Добавляет строку в историю запросов в БД
+        db_get_history - Возвращает историю запросов из БД.
+
 
 """
 
@@ -45,7 +49,7 @@ from database.db_control import db_sqlite
 
 def db_create_tables() -> None:
     """  Функция создающая таблицы по моделям из database.db_models в БД  """
-    db_sqlite.create_tables([User, Word, Translation, Synonym])
+    db_sqlite.create_tables([User, Word, Translation, Synonym, History])
 
 
 #
@@ -53,7 +57,6 @@ def db_create_tables() -> None:
 #
 
 def db_add_user(user_id: int, chat_id: int, user_name: str, user_state: str, language: str) -> User:
-
     """
     Функция добавляет запись в таблицу по модели User
     или, при наличие записи с такими же параметрами, возвращает имеющуюся.
@@ -87,7 +90,6 @@ def db_get_user(user_id: int) -> User:
 
 
 def db_get_language(user_id: int) -> str:
-
     """
     Геттер атрибута user_selected_language (str) объекта <class User> из БД
 
@@ -106,7 +108,6 @@ def db_get_language(user_id: int) -> str:
 
 
 def db_set_language(user_id: int, language: str) -> None:
-
     """
     Сеттер атрибута user_selected_language (str) объекта <class User> из БД
 
@@ -128,7 +129,6 @@ def db_set_language(user_id: int, language: str) -> None:
 
 
 def db_set_state(user_id: int, state: str) -> None:
-
     """
     Сеттер атрибута user_state (str) объекта <class User> из БД
 
@@ -154,7 +154,6 @@ def db_set_state(user_id: int, state: str) -> None:
 #
 
 def db_add_word(word: str) -> Word:
-
     """
     Добавляет слово <class Word> в БД или возвращает, если такое слово уже записанно
 
@@ -174,7 +173,6 @@ def db_add_word(word: str) -> Word:
 
 
 def db_get_word(word: str) -> Word:
-
     """
     Геттер объектов <class Word> из БД по значению атрибта word (str)
 
@@ -189,7 +187,6 @@ def db_get_word(word: str) -> Word:
 
 
 def db_get_word_by_id(word_id: int) -> Word:
-
     """
     Геттер объектов <class Word> из БД по значению атрибута word_id (int)
 
@@ -214,7 +211,6 @@ def db_add_translation(
         translation_translit: str,
         translation_translate: str
 ) -> Translation:
-
     """
     Добавляет перевод <class Translation> в БД или возвращает, если такой перевод уже записан
 
@@ -251,7 +247,6 @@ def db_add_translation(
 
 
 def db_get_translation_by_id(translation_id: int) -> Translation:
-
     """
     Геттер объектов <class Translation> из БД по значению translation_id (int)
 
@@ -267,7 +262,6 @@ def db_get_translation_by_id(translation_id: int) -> Translation:
 
 
 def db_get_translation_by_translation_word(translation_word: str, language: str) -> Translation:
-
     """
     Геттер объектов <class Translation> из БД по значению атрибутов translation_word (str) и translation_language (str)
 
@@ -296,7 +290,6 @@ def db_get_translation_by_translation_word(translation_word: str, language: str)
 
 
 def db_get_all_translation(word: str, language: str) -> List[Translation]:
-
     """
     Геттер всех объектов <class Translation> из БД,
     значения атрибутов translation_word (str) и translation_language (str) которых
@@ -340,7 +333,6 @@ def db_add_synonym(
         synonym_translit: str,
         synonym_translate: str
 ) -> Synonym:
-
     """
     Добавляет синоним <class Synonym> в БД или возвращает, если такой синоним уже записан
 
@@ -378,7 +370,6 @@ def db_add_synonym(
 
 
 def db_get_synonym_by_id(synonym_id: int) -> Synonym:
-
     """
     Геттер объектов <class Synonym> из БД по значению synonym_id (int)
 
@@ -394,7 +385,6 @@ def db_get_synonym_by_id(synonym_id: int) -> Synonym:
 
 
 def db_get_synonym_by_synonym_word(synonym_word: str) -> Synonym:
-
     """
     Геттер объектов <class Synonym> из БД по значению synonym_word (str)
 
@@ -410,7 +400,6 @@ def db_get_synonym_by_synonym_word(synonym_word: str) -> Synonym:
 
 
 def db_get_all_synonyms(translation_word: str, language: str) -> List[Synonym]:
-
     """
     Геттер всех объектов <class Synonym> из БД,
     значения атрибутов translation_word (str) и translation_language (str) которых
@@ -437,8 +426,88 @@ def db_get_all_synonyms(translation_word: str, language: str) -> List[Synonym]:
         language=language
     )
 
-    all_synonym = [i_synonym.synonym_id for i_synonym in
-                   Synonym.select().where(Synonym.translation_id == translate_obj.translation_id)]
+    all_synonym = [
+        i_synonym.synonym_id for i_synonym in
+        Synonym.select().where(Synonym.translation_id == translate_obj.translation_id)
+    ]
     all_synonym = [Synonym.get_by_id(i_synonym) for i_synonym in all_synonym]
 
     return all_synonym
+
+
+#
+# Относятся к модели History
+#
+
+
+def db_add_to_history(
+        user_id: int,
+        operation_type: str,
+        operation_language: str,
+        operation_text: str,
+        operation_translate: str,
+        operation_datetime: str
+) -> None:
+
+    """
+    Добавляет строку в историю запросов <class History> в БД.
+    Проверяет текущее количество запросов хранящихся в истории.
+    При превышении лимита history_max_length (int) - удаляет самый "старый" запрос.
+
+    Parameter:
+        current_history (List[<class History>]) - Текущая история запросов пользователя
+        history_max_length (int) - Максимальное количество записей в БД для каждого пользователя
+        first_hist (<class History>) - Первая в списке current_history, т.е. самая старая запись
+
+    Args:
+        user_id (int) - User_id
+        operation_type (str) - Сценарий ('low', 'high' или 'custom')
+        operation_language (str) - Язык перевода
+        operation_text (str) - Текст для перевода
+        operation_translate (str) - Результат перевода
+        operation_datetime (str) - Дата и время совершения действия пользователем
+
+    Returns:
+        None
+    """
+
+    current_history = db_get_history(user_id)
+    history_max_length = 10
+
+    if len(current_history) >= history_max_length:
+
+        first_hist = current_history[0]
+        first_hist.delete_instance()
+
+    History.get_or_create(
+        user_id=user_id,
+        operation_type=operation_type,
+        operation_language=operation_language,
+        operation_text=operation_text,
+        operation_translate=operation_translate,
+        operation_datetime=operation_datetime
+    )
+
+
+def db_get_history(user_id: int) -> List[History]:
+
+    """
+    Возвращает историю запросов <class History> из БД.
+
+    Parameter:
+        all_history (List[<class History>]) - Текущая история запросов пользователя
+
+    Args:
+        user_id (int) - User_id
+
+    Returns:
+        List[History]
+    """
+
+    all_history = [
+        i_hist.history_id for i_hist in
+        History.select().where(History.user_id == user_id)
+    ]
+    all_history = [History.get_by_id(i_hist) for i_hist in all_history]
+
+    return all_history
