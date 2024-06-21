@@ -10,7 +10,7 @@ from database.db_func import db_set_state
 def main_menu(callback: CallbackQuery) -> None:
 
     """
-    Обработчик нажатия кнопок клавиатуры (main_keyboard.main_markup).
+    Обработчик нажатия кнопок ведущих в главное меню.
     "Сбрасывает" состояние пользователя и редактирует предыдущее сообщение.
     Выдает клавиатуру-главное меню (main_keyboard.main_markup)
 

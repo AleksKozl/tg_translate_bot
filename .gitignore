@@ -1,8 +1,14 @@
 
 .idea
 
-# Teleramm and Avito API tokens
+# Teleramm and Yandex API tokens
 .env
+.venv
+env/
+venv/
+
+key.json
+jwt_token.txt
 
 # Databases
 .db

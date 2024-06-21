@@ -17,3 +17,11 @@ class TextTranslate(StatesGroup):
     source_language = State()
     text = State()
     text_translate = State()
+
+
+class VoiceSynt(StatesGroup):
+
+    wait = State()
+    target_language = State()
+    text_for_voice = State()
+    voice = State()

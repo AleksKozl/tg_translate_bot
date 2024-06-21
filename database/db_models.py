@@ -99,10 +99,38 @@ class Synonym(BaseModel):
     """
 
     synonym_id = AutoField(primary_key=True, unique=True)
-    translation_id = ForeignKeyField(Word)
+    translation_id = ForeignKeyField(Translation.translation_id)
     synonym_word = CharField(max_length=150)
     synonym_translit = CharField(max_length=50)
-    synonym_translate = CharField(max_length=150)
+    synonym_translate = CharField(max_length=50)
 
     class Meta:
         db_table = 'Synonyms'
+
+
+class History(BaseModel):
+
+    """
+    Модель для хранения истории запросов
+
+    Attributes:
+        history_id (int) - ID запроса
+        user_id (int) - User_id
+        operation_type (str) - Сценарий ('low', 'high' или 'custom')
+        operation_language (str) - Язык перевода
+        operation_text (str) - Текст для перевода
+        operation_translate (str) - Результат перевода
+        operation_datetime (str) - Дата и время совершения действия пользователем
+
+    """
+
+    history_id = AutoField(primary_key=True, unique=True)
+    user_id = ForeignKeyField(User.tg_user_id)
+    operation_type = CharField(max_length=10)
+    operation_language = CharField(max_length=10)
+    operation_text = CharField(max_length=300)
+    operation_translate = CharField(max_length=300)
+    operation_datetime = CharField(max_length=50)
+
+    class Meta:
+        db_table = 'History'

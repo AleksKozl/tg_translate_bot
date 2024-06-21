@@ -1,10 +1,15 @@
 from telebot.types import Message, CallbackQuery
+from datetime import datetime
 
 from YaAPI.YaTrnsltAPI import YaTrnslt_request
 from loader import bot
 from states.state_translation import TextTranslate
 from utils.pretty_translate_YaTrnslt import pretty_text
-from keyboards.inline import high_languages_keyboard, high_source_language_choice, high_exit_or_select_keyboard
+from keyboards.inline.high_keyboards import (
+    high_languages_markup,
+    high_source_language_markup,
+    high_exit_or_select_markup
+)
 import database.db_func as db_func
 
 
@@ -28,11 +33,11 @@ import database.db_func as db_func
 def welcome_to_high(callback: CallbackQuery):
 
     """
-    Обработчик нажатия кнопок ведущих к выполнению сценария 'low'.
+    Обработчик нажатия кнопок ведущих к выполнению сценария 'high'.
 
     Устанавливает состояниие пользователя как 'wait'.
-    Редактирует предыдущее сообщение, предлагает выбрать перевод,
-    выдает клавиатуру (high_languages_keyboard.high_languages_markup).
+    Редактирует предыдущее сообщение, предлагает выбрать язык перевода,
+    для этого выдает клавиатуру (high_languages_markup).
 
     Args:
         callback (CallbackQuery) -  Входящий запрос обратного вызова от кнопок на inline клавиатурах
@@ -48,7 +53,7 @@ def welcome_to_high(callback: CallbackQuery):
         chat_id=callback.message.chat.id,
         message_id=callback.message.id,
         text='Выберите один из доступных языков перевода:',
-        reply_markup=high_languages_keyboard.high_languages_markup()
+        reply_markup=high_languages_markup()
     )
 
 
@@ -72,7 +77,7 @@ def language_set(callback: CallbackQuery) -> None:
         устанавливает значение атрибута user_state (str) пользователя <class User> в БД
         устанавливает значение атрибута user_selected_language (str) пользователя <class User> в БД
         устанавливает состояниие пользователя как 'source_language'.
-        При помощи клавиатуры high_source_language_choice
+        При помощи клавиатуры high_source_language_markup
         предлагает выбрать вводить или нет язык переводимого текста.
 
     Args:
@@ -112,7 +117,7 @@ def language_set(callback: CallbackQuery) -> None:
             message_id=callback.message.id,
             text=f'Принято. Ваш язык перевода: "{callback.data}"\n'
                  f'Желаете выбрать язык переводимого текста?:',
-            reply_markup=high_source_language_choice.high_source_language_markup()
+            reply_markup=high_source_language_markup()
         )
 
         with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
@@ -139,7 +144,7 @@ def language_check(message: Message) -> None:
         устанавливает значение атрибута user_state (str) пользователя <class User> в БД
         устанавливает значение атрибута user_selected_language (str) пользователя <class User> в БД
         устанавливает состояниие пользователя как 'text_source_language'.
-        При помощи клавиатуры high_source_language_choice
+        При помощи клавиатуры high_source_language_markup
         предлагает выбрать вводить или нет язык переводимого текста.
 
     Args:
@@ -166,7 +171,7 @@ def language_check(message: Message) -> None:
             chat_id=message.chat.id,
             text=f'Принято. Ваш язык перевода: "{message.text}"\n'
                  f'Желаете выбрать язык переводимого текста?:',
-            reply_markup=high_source_language_choice.high_source_language_markup()
+            reply_markup=high_source_language_markup()
         )
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
@@ -181,7 +186,7 @@ def language_check(message: Message) -> None:
 def source_language_choice(callback: CallbackQuery) -> None:
 
     """
-    Обработчик нажатия кнопок клавиатуры high_source_language_choice.
+    Обработчик нажатия кнопок клавиатуры high_source_language_markup.
 
     Получает результат запроса доступных языков из модуля YaTrnslt_request.
     В случае неудачного запроса завершает работу.
@@ -311,13 +316,16 @@ def get_text_translate(message: Message) -> None:
     Иначе:
         Выдает перевод через функцию pretty_text() модуля utils.pretty_translate_YaTrnslt
         После предлагает ввести еще одно слово
-        или один из вариантов команд с кнопок клавиатуры high_exit_or_select_keyboard
+        или один из вариантов команд с кнопок клавиатуры high_exit_or_select_markup
         в которой предлагается выбор - выход в главное меню или выбор языка (повтор сценария сначала).
+        А также вносит запрос типа 'high' в историю запросов.
+
 
     Parameter:
         source_language (str) - Язык переводимого текста
         target_language (str) - Текущий язык перевода
         lookup_response (<class 'requests.models.Response'>) - Результат запроса о переводе
+        pretty_translation (str) - Приведенный к нужному для вывода пользователю виду результат перевода
 
     Args:
         message (Message) - Сообщение пользователя
@@ -325,8 +333,6 @@ def get_text_translate(message: Message) -> None:
     Returns:
         None
     """
-
-    # target_language = db_func.db_get_language(user_id=message.from_user.id)
 
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         source_language = data['source_language']
@@ -344,14 +350,25 @@ def get_text_translate(message: Message) -> None:
 
     else:
 
-        bot.send_message(
-            message.chat.id,
-            text=pretty_text(
+        pretty_translation = pretty_text(
                 translate_json=lookup_response.json(),
                 text_for_translation=message.text
-            ) + '\n\nМожете написать еще текст или выбрать действие на кнопках.',
-            reply_markup=high_exit_or_select_keyboard.high_exit_or_select_markup(),
+            )
+
+        bot.send_message(
+            message.chat.id,
+            text=pretty_translation[0] + '\n\nМожете написать еще текст или выбрать действие на кнопках.',
+            reply_markup=high_exit_or_select_markup(),
         )
 
-        bot.set_state(message.from_user.id, TextTranslate.text, message.chat.id)
-        db_func.db_set_state(user_id=message.from_user.id, state='text_text')
+        db_func.db_add_to_history(
+            user_id=message.from_user.id,
+            operation_type='high',
+            operation_language=target_language,
+            operation_text=message.text,
+            operation_translate=pretty_translation[1],
+            operation_datetime=f'{datetime.now()}'
+        )
+
+    bot.set_state(message.from_user.id, TextTranslate.text, message.chat.id)
+    db_func.db_set_state(user_id=message.from_user.id, state='text_text')

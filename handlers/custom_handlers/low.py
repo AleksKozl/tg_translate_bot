@@ -1,10 +1,11 @@
+from datetime import datetime
 from telebot.types import Message, CallbackQuery
 
 from YaAPI.YaDictAPI import YaDict_request
 from loader import bot
 from states.state_translation import WordTranslate
 from utils.pretty_translate_YaDict import pretty_text
-from keyboards.inline import low_languages_keyboard, low_exit_or_select_keyboard
+from keyboards.inline.low_keyboards import low_languages_markup, low_exit_or_select_markup
 import database.db_func as db_func
 
 
@@ -32,7 +33,7 @@ def welcome_to_low(callback: CallbackQuery):
 
     Устанавливает состояниие пользователя как 'wait'.
     Редактирует предыдущее сообщение, предлагает выбрать перевод,
-    выдает клавиатуру (low_languages_keyboard.low_languages_markup).
+    выдает клавиатуру (low_languages_markup).
 
     Args:
         callback (CallbackQuery) -  Входящий запрос обратного вызова от кнопок на inline клавиатурах
@@ -48,7 +49,7 @@ def welcome_to_low(callback: CallbackQuery):
         chat_id=callback.message.chat.id,
         message_id=callback.message.id,
         text='Выберите одно из доступных направлений перевода:',
-        reply_markup=low_languages_keyboard.low_languages_markup()
+        reply_markup=low_languages_markup()
     )
 
 
@@ -255,8 +256,9 @@ def get_word_translate(message: Message) -> None:
         Выдает перевод через функцию pretty_text() модуля utils.pretty_translate_YaDict
         После предлагает ввести еще одно слово
         или один из вариантов команд с кнопок клавиатуры low_exit_or_select_markup()
-        модуля low_exit_or_select_keyboard
         в которой предлагается выбор - выход в главное меню или выбор языка (повтор сценария сначала).
+        А также вносит запрос типа 'low' в историю запросов.
+
 
     Parameter:
         language_selected (str) - Текущий язык (направление) перевода,
@@ -281,21 +283,32 @@ def get_word_translate(message: Message) -> None:
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['word_translate'] = lookup_response.json()
             db_func.db_add_word(data['word'])
+            target_language = db_func.db_get_language(user_id=message.from_user.id)
+
             data['translate_result'] = pretty_text(
                     word=data['word'],
-                    language=db_func.db_get_language(user_id=message.from_user.id),
+                    language=target_language,
                     translate_json=data['word_translate'],
                     max_numbers_of_translations=data['numbers_of_translations']
                 )
             bot.send_message(
                 message.chat.id,
-                text=data['translate_result'],
+                text=data['translate_result'][0],
                 )
+
+            db_func.db_add_to_history(
+                user_id=message.from_user.id,
+                operation_type='low',
+                operation_language=target_language,
+                operation_text=data['word'],
+                operation_translate=data['translate_result'][1],
+                operation_datetime=f'{datetime.now()}'
+            )
 
             bot.send_message(
                 message.chat.id,
                 text='Можете написать еще одно слово или выбрать действие на кнопках.',
-                reply_markup=low_exit_or_select_keyboard.low_exit_or_select_markup()
+                reply_markup=low_exit_or_select_markup()
             )
 
         bot.set_state(message.from_user.id, WordTranslate.word, message.chat.id)
