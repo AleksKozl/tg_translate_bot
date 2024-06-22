@@ -128,8 +128,8 @@ class History(BaseModel):
     user_id = ForeignKeyField(User.tg_user_id)
     operation_type = CharField(max_length=10)
     operation_language = CharField(max_length=10)
-    operation_text = CharField(max_length=300)
-    operation_translate = CharField(max_length=300)
+    operation_text = CharField(max_length=500)
+    operation_translate = CharField(max_length=500)
     operation_datetime = CharField(max_length=50)
 
     class Meta:

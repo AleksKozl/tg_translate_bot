@@ -1,17 +1,20 @@
+from base64 import b64encode
 from datetime import datetime
 from os import remove, sep
 from telebot.types import Message, CallbackQuery
 
 from YaAPI.YaSpeechkit_VisionOCR.YaSpeechkitSynt_request import synthesize
+from YaAPI.YaSpeechkit_VisionOCR.YaVisionOCR_request import image_analyze
 from YaAPI.YaTrnsltAPI.YaTrnslt_request import yatrnslt_translate
 from loader import bot
-from states.state_translation import VoiceSynt
+from states.state_translation import VoiceSynt, ImageAnalysis
 from utils.pretty_translate_YaTrnslt import pretty_text
 from keyboards.inline.custom_keyboards import (
     custom_main_markup,
     custom_languages_markup,
     custom_high_to_voice_markup,
-    custom_exit_or_select_markup
+    custom_exit_or_select_markup,
+    custom_image_translation_language
 )
 from database import db_func
 from config_data.config import TEMP_AUDIO_PATH
@@ -33,8 +36,11 @@ from config_data.config import TEMP_AUDIO_PATH
 Список функций:
     welcome_to_custom - Обработчик нажатия кнопок ведущих к выполнению сценария 'custom'.
     high_to_voice - Осуществляет озвучивание текста переведенного в сценарии 'high' (последнего в истории запросов).
-    custom_to_image_main - Запускает сценарий определения текста на изображении.
     
+    custom_to_image_main - Запускает сценарий определения текста на изображении.
+    image_sent - Принимает изображение, делает запрос о распознавании текста через модуль YaVisionOCR_request 
+                 и выдает пользователю результат.
+                 
     custom_to_voice_main - Запускает подсценарий перевода и озвучивания, предлагает выбрать язык из 3 возможных.
     voice_main_to_text - Обрабатывает выбранный язык, предлагает ввести текст.
     voice_text - Принимает текст для перевода.
@@ -139,7 +145,95 @@ def high_to_voice(callback: CallbackQuery) -> None:
 
 @bot.callback_query_handler(func=lambda callback: callback.data == 'image')
 def custom_to_image_main(callback: CallbackQuery) -> None:
-    pass
+
+    """
+    Запускает сценарий определения текста на изображении.
+
+    Предлагает выслать изображение.
+
+    Устанавливает значение атрибута user_state (str) пользователя <class User> в БД
+    Устанавливает состояниие пользователя как 'image_sent'.
+
+    Args:
+        callback (CallbackQuery) -  Входящий запрос обратного вызова от кнопок на inline клавиатурах
+
+    Returns:
+        None
+    """
+
+    bot.edit_message_text(
+        chat_id=callback.message.chat.id,
+        message_id=callback.message.id,
+        text='Я могу определить текст на изображении. (Не более 500 символов)\n'
+             'Лучше всего у меня получается определить текст на Русском и Английском языках.\n'
+             'Но могу попробовать и с другими языками.\n'
+             'Вышлите мне изображение и я напишу Вам то, что на нем нашел.',
+    )
+
+    bot.set_state(callback.from_user.id, ImageAnalysis.image_sent, callback.message.chat.id)
+    db_func.db_set_state(user_id=callback.from_user.id, state='image_sent')
+
+
+@bot.message_handler(content_types=['photo'], state=ImageAnalysis.image_sent)
+def image_sent(message: Message) -> None:
+
+    """
+    Принимает изображение.
+    Совершает запрос о распознавании текста через модуль YaVisionOCR_request и выдает пользователю результат.
+
+    Добавляет запись в историю запросов в БД.
+
+    Parameter:
+        file_id (str) - ID Файла-изображения
+        file_info (<class 'telebot.types.File'>) - Информация о файле (размер, путь)
+        downloaded_file (<class 'bytes'>) - Файл в виде байтовой строки
+        image_data (str) - Декодированная байтовая строка
+        response_text (str) - Результат распознавания текста
+        ask_message_id (int) - ID сообщения с клавиатурой.
+                               Нужен для удаления сообщения с целью упрощения навигации пользователю.
+
+    Args:
+        message (Message) - Сообщение пользователя
+
+    Returns:
+        None
+    """
+
+    file_id = message.photo[-1].file_id
+    file_info = bot.get_file(file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    image_data = b64encode(downloaded_file).decode('utf-8')
+    response_text = image_analyze(image_data)
+
+    bot.reply_to(
+        message,
+        'Вот что я определил:\n' + response_text
+    )
+
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+
+        if data.get('ask_message_id') is not None:
+            bot.delete_message(
+                chat_id=message.chat.id,
+                message_id=data['ask_message_id']
+            )
+
+        ask_message_id = bot.send_message(
+            message.chat.id,
+            text='Вы можете выслать мне другое изображение для определения текста\n'
+                 'или я могу перевести этот текст.',
+            reply_markup=custom_image_translation_language()
+        ).id
+        data['ask_message_id'] = ask_message_id
+
+    db_func.db_add_to_history(
+        user_id=message.from_user.id,
+        operation_type='image',
+        operation_language='---',
+        operation_text=response_text,
+        operation_translate='---',
+        operation_datetime=f'{datetime.now()}'
+    )
 
 
 @bot.callback_query_handler(func=lambda callback: callback.data == 'voice')
@@ -192,7 +286,6 @@ def voice_main_to_text(callback: CallbackQuery) -> None:
     """
 
     target_language = callback.data.split('_')[1]
-
     with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
         data['voice_target_language'] = target_language
 
@@ -243,7 +336,6 @@ def voice_text_translation(message: Message) -> None:
         А также вносит запрос типа 'voice' в историю запросов.
 
     Parameter:
-        source_language (str) - Язык переводимого текста
         target_language (str) - Выбранный для перевода язык
         lookup_response (<class 'requests.models.Response'>) - Результат запроса о переводе
         pretty_translation (str) - Приведенный к нужному для вывода пользователю виду результат перевода
@@ -256,15 +348,11 @@ def voice_text_translation(message: Message) -> None:
     """
 
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        source_language = data.get('source_language')
-        target_language = data.get('target_language')
-        if target_language is None:
-            target_language = data.get('voice_target_language')
+        target_language = data.get('voice_target_language')
 
     lookup_response = yatrnslt_translate(
         text=message.text,
-        target_language=target_language,
-        source_language=source_language
+        target_language=target_language
     )
 
     if lookup_response.status_code != 200:
