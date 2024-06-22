@@ -11,4 +11,4 @@ key.json
 jwt_token.txt
 
 # Databases
-.db
+**/*.db

@@ -26,7 +26,7 @@ def main_markup() -> InlineKeyboardMarkup:
     return keyboard
 
 
-def history_markup() -> InlineKeyboardMarkup:
+def to_main_menu_markup() -> InlineKeyboardMarkup:
 
     """
     Создает клавиатуру для выхода главное меню.
