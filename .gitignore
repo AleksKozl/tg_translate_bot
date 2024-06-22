@@ -1,11 +1,11 @@
 
 .idea
+.venv
+venv/
 
 # Teleramm and Yandex API tokens
 .env
-.venv
 env/
-venv/
 
 key.json
 jwt_token.txt

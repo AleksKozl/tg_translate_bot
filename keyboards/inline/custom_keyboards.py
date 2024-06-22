@@ -98,3 +98,27 @@ def custom_exit_or_select_markup() -> InlineKeyboardMarkup:
     keyboard.add(button_main_menu, button_select_language)
 
     return keyboard
+
+
+def custom_image_translation_language() -> InlineKeyboardMarkup:
+
+    """
+    Создает клавиатуру с выбором действия -
+    "Выход в главное меню" или "Перевод распознанного текста" (переход к сценарю "high").
+
+    Parameter:
+        keyboard (InlineKeyboardMarkup) - Объект клавиатуры
+        button_xxx (InlineKeyboardButton) - Объекты кнопок
+
+    Returns:
+        <class InlineKeyboardMarkup>
+    """
+
+    keyboard = InlineKeyboardMarkup(row_width=1)
+
+    button_image_to_high = InlineKeyboardButton(text='Перевести обнаруженный текст', callback_data='image_to_high')
+    button_main_menu = InlineKeyboardButton(text='Выйти в главное меню', callback_data='main_menu')
+
+    keyboard.add(button_image_to_high, button_main_menu)
+
+    return keyboard

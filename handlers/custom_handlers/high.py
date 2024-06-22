@@ -29,7 +29,7 @@ import database.db_func as db_func
 """
 
 
-@bot.callback_query_handler(func=lambda callback: callback.data == 'high')
+@bot.callback_query_handler(func=lambda callback: callback.data in ['high', 'image_to_high'])
 def welcome_to_high(callback: CallbackQuery):
 
     """
@@ -38,6 +38,8 @@ def welcome_to_high(callback: CallbackQuery):
     Устанавливает состояниие пользователя как 'wait'.
     Редактирует предыдущее сообщение, предлагает выбрать язык перевода,
     для этого выдает клавиатуру (high_languages_markup).
+
+    В случае перевода распознанного на изображении текста - поднимает соответствующий флаг.
 
     Args:
         callback (CallbackQuery) -  Входящий запрос обратного вызова от кнопок на inline клавиатурах
@@ -48,6 +50,10 @@ def welcome_to_high(callback: CallbackQuery):
 
     bot.set_state(callback.from_user.id, TextTranslate.wait, callback.message.chat.id)
     db_func.db_set_state(user_id=callback.from_user.id, state='text_wait')
+
+    if callback.data == 'image_to_high':
+        with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
+            data['image_to_high_flag'] = True
 
     bot.edit_message_text(
         chat_id=callback.message.chat.id,
@@ -79,6 +85,11 @@ def language_set(callback: CallbackQuery) -> None:
         устанавливает состояниие пользователя как 'source_language'.
         При помощи клавиатуры high_source_language_markup
         предлагает выбрать вводить или нет язык переводимого текста.
+
+        В случае если переводится распознанный на изображении текст - переходит к переводу.
+
+    Parameter:
+        image_to_high_flag (bool) - Флаг перехода от сценария "custom/image"
 
     Args:
         callback (CallbackQuery) -  Входящий запрос обратного вызова от кнопок на inline клавиатурах
@@ -112,20 +123,31 @@ def language_set(callback: CallbackQuery) -> None:
 
     elif callback.data in ['ru', 'en', 'de', 'fr']:
 
-        bot.edit_message_text(
-            chat_id=callback.message.chat.id,
-            message_id=callback.message.id,
-            text=f'Принято. Ваш язык перевода: "{callback.data}"\n'
-                 f'Желаете выбрать язык переводимого текста?:',
-            reply_markup=high_source_language_markup()
-        )
-
         with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
+            image_to_high_flag = data['image_to_high_flag']
             data['target_language'] = callback.data
             db_func.db_set_language(user_id=callback.from_user.id, language=callback.data)
 
-        bot.set_state(callback.from_user.id, TextTranslate.source_language, callback.message.chat.id)
-        db_func.db_set_state(user_id=callback.from_user.id, state='text_source_language')
+        if image_to_high_flag:
+            bot.edit_message_text(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
+                text=f'Принято. Ваш язык перевода: "{callback.data}"'
+            )
+
+            get_text(message=callback.message)
+
+        else:
+            bot.edit_message_text(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
+                text=f'Принято. Ваш язык перевода: "{callback.data}"\n'
+                     f'Желаете выбрать язык переводимого текста?:',
+                reply_markup=high_source_language_markup()
+            )
+
+            bot.set_state(callback.from_user.id, TextTranslate.source_language, callback.message.chat.id)
+            db_func.db_set_state(user_id=callback.from_user.id, state='text_source_language')
 
 
 @bot.message_handler(state=TextTranslate.target_language)
@@ -147,6 +169,12 @@ def language_check(message: Message) -> None:
         При помощи клавиатуры high_source_language_markup
         предлагает выбрать вводить или нет язык переводимого текста.
 
+        В случае если переводится распознанный на изображении текст - переходит к переводу.
+
+
+    Parameter:
+        image_to_high_flag (bool) - Флаг перехода от сценария "custom/image"
+
     Args:
         message (Message) - Сообщение пользователя
 
@@ -160,6 +188,7 @@ def language_check(message: Message) -> None:
     else:
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             all_langs_message_id = data['message_id_with_all_langs']
+            image_to_high_flag = data['image_to_high_flag']
 
         bot.edit_message_text(
             chat_id=message.chat.id,
@@ -167,12 +196,20 @@ def language_check(message: Message) -> None:
             text=f'Список всех языков скрыт.'
         )
 
-        bot.send_message(
-            chat_id=message.chat.id,
-            text=f'Принято. Ваш язык перевода: "{message.text}"\n'
-                 f'Желаете выбрать язык переводимого текста?:',
-            reply_markup=high_source_language_markup()
-        )
+        if image_to_high_flag:
+            bot.send_message(
+                chat_id=message.chat.id,
+                text=f'Принято. Ваш язык перевода: "{message.text}"\n'
+            )
+            get_text(message)
+
+        else:
+            bot.send_message(
+                chat_id=message.chat.id,
+                text=f'Принято. Ваш язык перевода: "{message.text}"\n'
+                     f'Желаете выбрать язык переводимого текста?:',
+                reply_markup=high_source_language_markup()
+            )
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['target_language'] = message.text
@@ -228,14 +265,14 @@ def source_language_choice(callback: CallbackQuery) -> None:
         with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
             data['source_language'] = None
 
-        bot.edit_message_text(
-            chat_id=callback.message.chat.id,
-            message_id=callback.message.id,
-            text='Теперь введите текст который мне нужно перевести:'
-        )
+            bot.edit_message_text(
+                chat_id=callback.message.chat.id,
+                message_id=callback.message.id,
+                text='Теперь введите текст который мне нужно перевести:'
+            )
 
-        bot.set_state(callback.from_user.id, TextTranslate.text, callback.message.chat.id)
-        db_func.db_set_state(user_id=callback.from_user.id, state='text_text')
+            bot.set_state(callback.from_user.id, TextTranslate.text, callback.message.chat.id)
+            db_func.db_set_state(user_id=callback.from_user.id, state='text_text')
 
 
 @bot.message_handler(state=TextTranslate.source_language)
@@ -269,8 +306,8 @@ def source_language_check(message: Message) -> None:
                  f'Теперь введите текст который мне нужно перевести:'
         )
 
-    bot.set_state(message.from_user.id, TextTranslate.text, message.chat.id)
-    db_func.db_set_state(user_id=message.from_user.id, state='text_text')
+        bot.set_state(message.from_user.id, TextTranslate.text, message.chat.id)
+        db_func.db_set_state(user_id=message.from_user.id, state='text_text')
 
 
 @bot.message_handler(state=TextTranslate.text)
@@ -279,6 +316,7 @@ def get_text(message: Message) -> None:
     """
     Обработчик состояния пользователя, принимает состояние 'text'.
     Принимает текст для перевода.
+    В случае если переводится распознанный на изображении текст - берет текст из истории запросов.
 
     Выдает подтверждение принятия текста.
     Устанавливает значение атрибута user_state (str) пользователя <class User> в БД
@@ -292,13 +330,18 @@ def get_text(message: Message) -> None:
         None
     """
 
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        data['text'] = message.text
+    with bot.retrieve_data(message.chat.id) as data:
+
+        if data.get('image_to_high_flag'):
+            latest_translate = db_func.db_get_history(user_id=message.chat.id)[-1]
+            data['text'] = latest_translate.operation_text
+        else:
+            data['text'] = message.text
 
     bot.send_message(message.chat.id, text=f'Принято. Перевожу Ваш текст.')
 
-    bot.set_state(message.from_user.id, TextTranslate.text_translate, message.chat.id)
-    db_func.db_set_state(user_id=message.from_user.id, state='text_text_translate')
+    bot.set_state(message.chat.id, TextTranslate.text_translate, message.chat.id)
+    db_func.db_set_state(user_id=message.chat.id, state='text_text_translate')
 
     get_text_translate(message)
 
@@ -320,6 +363,8 @@ def get_text_translate(message: Message) -> None:
         в которой предлагается выбор - выход в главное меню или выбор языка (повтор сценария сначала).
         А также вносит запрос типа 'high' в историю запросов.
 
+    Опускает флаг перевода распознанного на изображении текста.
+
 
     Parameter:
         source_language (str) - Язык переводимого текста
@@ -334,12 +379,14 @@ def get_text_translate(message: Message) -> None:
         None
     """
 
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        source_language = data['source_language']
-        target_language = data['target_language']
+    with bot.retrieve_data(message.chat.id) as data:
+        source_language = data.get('source_language')
+        target_language = data.get('target_language')
+        data['image_to_high_flag'] = False
+        target_text = data.get('text')
 
     lookup_response = YaTrnslt_request.yatrnslt_translate(
-        text=message.text,
+        text=target_text,
         target_language=target_language,
         source_language=source_language
     )
@@ -352,7 +399,7 @@ def get_text_translate(message: Message) -> None:
 
         pretty_translation = pretty_text(
                 translate_json=lookup_response.json(),
-                text_for_translation=message.text
+                text_for_translation=target_text
             )
 
         bot.send_message(
@@ -362,13 +409,13 @@ def get_text_translate(message: Message) -> None:
         )
 
         db_func.db_add_to_history(
-            user_id=message.from_user.id,
+            user_id=message.chat.id,
             operation_type='high',
             operation_language=target_language,
-            operation_text=message.text,
+            operation_text=target_text,
             operation_translate=pretty_translation[1],
             operation_datetime=f'{datetime.now()}'
         )
 
-    bot.set_state(message.from_user.id, TextTranslate.text, message.chat.id)
-    db_func.db_set_state(user_id=message.from_user.id, state='text_text')
+    bot.set_state(message.chat.id, TextTranslate.text, message.chat.id)
+    db_func.db_set_state(user_id=message.chat.id, state='text_text')
