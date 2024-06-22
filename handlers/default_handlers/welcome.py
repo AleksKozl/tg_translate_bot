@@ -41,4 +41,8 @@ def send_welcome(message: Message) -> None:
         language='ru-en'
     )
 
-    bot.send_message(message.from_user.id, text, reply_markup=main_markup())
+    bot.send_message(
+        message.from_user.id,
+        text,
+        reply_markup=main_markup()
+    )
