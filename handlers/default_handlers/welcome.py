@@ -1,7 +1,7 @@
 from telebot.types import Message
 
 from loader import bot
-from keyboards.inline.main_keyboard import main_markup
+from keyboards.inline.main_keyboards import main_markup
 from database.db_func import db_create_tables, db_add_user
 
 
