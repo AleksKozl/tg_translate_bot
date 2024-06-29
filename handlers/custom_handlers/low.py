@@ -15,6 +15,7 @@ import database.db_func as db_func
 Переводит слово полученное от пользователя по выбранному им направленю перевода.
 
 Список функций:
+    command_low - Обработчик комманды 'low'.
     welcome_to_low - Обработчик нажатия кнопок ведущих к выполнению сценария 'low'.
     language_set - Обработчик нажатия кнопок клавиатуры по выбору направления перевода.
     language_check - Проверяет наличия выбранного направления перевода среди направлений 'Яндекс.Словаря'.
@@ -25,14 +26,51 @@ import database.db_func as db_func
 """
 
 
+@bot.message_handler(commands=['low'])
+def command_low(message: Message) -> None:
+
+    """
+    Обработчик комманды 'low'.
+
+    Устанавливает состояниие пользователя как 'wait'.
+    Предлагает выбрать язык перевода,
+    выдает клавиатуру (low_languages_markup).
+
+    Добавляет пользователя (<class User>) в БД
+
+    Args:
+        message (Message) - Сообщение пользователя
+
+    Returns:
+        None
+    """
+
+    bot.set_state(message.from_user.id, WordTranslate.wait, message.chat.id)
+    db_func.db_set_state(user_id=message.from_user.id, state='wait')
+
+    bot.send_message(
+        message.from_user.id,
+        text='Выберите одно из доступных направлений перевода:',
+        reply_markup=low_languages_markup()
+    )
+
+    db_func.db_add_user(
+        user_id=message.from_user.id,
+        chat_id=message.chat.id,
+        user_name=message.from_user.first_name,
+        user_state='Low_Start',
+        language='---'
+    )
+
+
 @bot.callback_query_handler(func=lambda callback: callback.data == 'low')
-def welcome_to_low(callback: CallbackQuery):
+def welcome_to_low(callback: CallbackQuery) -> None:
 
     """
     Обработчик нажатия кнопок ведущих к выполнению сценария 'low'.
 
     Устанавливает состояниие пользователя как 'wait'.
-    Редактирует предыдущее сообщение, предлагает выбрать перевод,
+    Редактирует предыдущее сообщение, предлагает выбрать язык перевода,
     выдает клавиатуру (low_languages_markup).
 
     Args:
@@ -291,6 +329,13 @@ def get_word_translate(message: Message) -> None:
                     translate_json=data['word_translate'],
                     max_numbers_of_translations=data['numbers_of_translations']
                 )
+            if data.get('low_choice_message_id'):
+
+                bot.delete_message(
+                    chat_id=message.chat.id,
+                    message_id=data['low_choice_message_id']
+                )
+
             bot.send_message(
                 message.chat.id,
                 text=data['translate_result'][0],
@@ -305,11 +350,12 @@ def get_word_translate(message: Message) -> None:
                 operation_datetime=f'{datetime.now()}'
             )
 
-            bot.send_message(
+            low_choice_message_id = bot.send_message(
                 message.chat.id,
                 text='Можете написать еще одно слово или выбрать действие на кнопках.',
                 reply_markup=low_exit_or_select_markup()
-            )
+            ).id
+            data['low_choice_message_id'] = low_choice_message_id
 
         bot.set_state(message.from_user.id, WordTranslate.word, message.chat.id)
         db_func.db_set_state(user_id=message.from_user.id, state='word')

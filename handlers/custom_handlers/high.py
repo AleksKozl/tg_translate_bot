@@ -14,10 +14,13 @@ import database.db_func as db_func
 
 
 """
-Модуль отвечает за обработку команды 'high'.
-Переводит слово полученное от пользователя по выбранному им направленю перевода.
+Модуль отвечает за обработку сценария 'high'.
+Переводит слово полученное от пользователя по выбранному им направлению перевода.
+Также может переводить результат распознавания изображения из сценария 'custom/image'
+После перевода предлагает озвучить результат при помощи сценария 'custom/voice'.
 
 Список функций:
+    command_high - Обработчик комманды 'high'.
     welcome_to_high - Обработчик нажатия кнопок ведущих к выполнению сценария 'high'.
     language_set - Обработчик нажатия кнопок клавиатуры по выбору языка перевода.
     language_check - Проверяет наличия выбранного языка перевода среди языков 'Яндекс.Переводчика'.
@@ -27,6 +30,43 @@ import database.db_func as db_func
     get_text_translate - Совершает запрос о переводе к 'Яндекс.Переводчику' через модуль YaTrnslt_request.
 
 """
+
+
+@bot.message_handler(commands=['high'])
+def command_high(message: Message) -> None:
+
+    """
+    Обработчик комманды 'high'.
+
+    Устанавливает состояниие пользователя как 'wait'.
+    Предлагает выбрать язык перевод,
+    выдает клавиатуру (high_languages_markup).
+
+    Добавляет пользователя (<class User>) в БД
+
+    Args:
+        message (Message) - Сообщение пользователя
+
+    Returns:
+        None
+    """
+
+    db_func.db_add_user(
+        user_id=message.from_user.id,
+        chat_id=message.chat.id,
+        user_name=message.from_user.first_name,
+        user_state='High_Start',
+        language='---'
+    )
+
+    bot.set_state(message.from_user.id, TextTranslate.wait, message.chat.id)
+    db_func.db_set_state(user_id=message.from_user.id, state='text_wait')
+
+    bot.send_message(
+        message.from_user.id,
+        text='Выберите один из доступных языков перевода:',
+        reply_markup=high_languages_markup()
+    )
 
 
 @bot.callback_query_handler(func=lambda callback: callback.data in ['high', 'image_to_high'])
@@ -124,7 +164,7 @@ def language_set(callback: CallbackQuery) -> None:
     elif callback.data in ['ru', 'en', 'de', 'fr']:
 
         with bot.retrieve_data(callback.from_user.id, callback.message.chat.id) as data:
-            image_to_high_flag = data['image_to_high_flag']
+            image_to_high_flag = data.get('image_to_high_flag')
             data['target_language'] = callback.data
             db_func.db_set_language(user_id=callback.from_user.id, language=callback.data)
 
@@ -402,11 +442,21 @@ def get_text_translate(message: Message) -> None:
                 text_for_translation=target_text
             )
 
-        bot.send_message(
-            message.chat.id,
-            text=pretty_translation[0] + '\n\nМожете написать еще текст или выбрать действие на кнопках.',
-            reply_markup=high_exit_or_select_markup(),
-        )
+        with bot.retrieve_data(message.chat.id) as data:
+            if data.get('high_choice_message_id'):
+
+                bot.edit_message_reply_markup(
+                    message_id=data.get('high_choice_message_id'),
+                    chat_id=message.chat.id,
+                    reply_markup=None
+                )
+
+            high_choice_message_id = bot.send_message(
+                message.chat.id,
+                text=pretty_translation[0] + '\n\nМожете написать еще текст или выбрать действие на кнопках.',
+                reply_markup=high_exit_or_select_markup(),
+            ).id
+            data['high_choice_message_id'] = high_choice_message_id
 
         db_func.db_add_to_history(
             user_id=message.chat.id,

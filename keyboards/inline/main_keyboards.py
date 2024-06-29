@@ -17,7 +17,7 @@ def main_markup() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(row_width=1)
 
     button_help = InlineKeyboardButton(text='Что умеет этот бот?', callback_data='help')
-    button_history = InlineKeyboardButton(text='Показать историю поиска.', callback_data='history')
+    button_history = InlineKeyboardButton(text='Показать историю запросов.', callback_data='history')
     button_low = InlineKeyboardButton(text='Выполнить перевод отдельного слова.', callback_data='low')
     button_high = InlineKeyboardButton(text='Выполнить перевод текста.', callback_data='high')
     button_custom = InlineKeyboardButton(text='Дополнительные функции', callback_data='custom')

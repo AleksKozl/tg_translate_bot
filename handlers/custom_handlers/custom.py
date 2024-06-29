@@ -24,8 +24,9 @@ from config_data.config import TEMP_AUDIO_PATH
 Содержит два подсценария: 'image' и 'voice'.
 
     Подсценарий 'image':
-    
-        *Pass*
+        Принимает изображение, определяет на нем текст, 
+        выдает результат определения и предлагает сделать перевод. 
+        Перевод производится посредством сценария 'high'. После него также доступно озвучивание.
     
     Подсценарий 'voice':
         Переводит и озвучивает введенный пользователем текст. 
@@ -34,6 +35,7 @@ from config_data.config import TEMP_AUDIO_PATH
 
 
 Список функций:
+    command_custom - Обработчик комманды 'custom'.
     welcome_to_custom - Обработчик нажатия кнопок ведущих к выполнению сценария 'custom'.
     high_to_voice - Осуществляет озвучивание текста переведенного в сценарии 'high' (последнего в истории запросов).
     
@@ -49,6 +51,42 @@ from config_data.config import TEMP_AUDIO_PATH
                              через модуль YaSpeechkitSynt_request
 
 """
+
+
+@bot.message_handler(commands=['custom'])
+def command_custom(message: Message) -> None:
+    """
+    Обработчик комманды 'custom'.
+
+    Устанавливает состояниие пользователя как 'wait'.
+    Предлагает выбрать подсценарий,
+    выдает клавиатуру (custom_main_markup()).
+
+    Добавляет пользователя (<class User>) в БД
+
+    Args:
+        message (Message) - Сообщение пользователя
+
+    Returns:
+        None
+    """
+
+    db_func.db_add_user(
+        user_id=message.from_user.id,
+        chat_id=message.chat.id,
+        user_name=message.from_user.first_name,
+        user_state='Custom_Start',
+        language='---'
+    )
+
+    bot.set_state(message.from_user.id, VoiceSynt.wait, message.chat.id)
+    db_func.db_set_state(user_id=message.from_user.id, state='voice_wait')
+
+    bot.send_message(
+        message.from_user.id,
+        text=f'Выберете желаемое действие на клавиатуре ниже.',
+        reply_markup=custom_main_markup()
+    )
 
 
 @bot.callback_query_handler(func=lambda callback: callback.data == 'custom')
@@ -141,6 +179,13 @@ def high_to_voice(callback: CallbackQuery) -> None:
                 voice_translate=latest_translate.operation_translate,
                 voice_language=data['voice_target_language']
             )
+
+            high_choice_message_id = bot.send_message(
+                chat_id=callback.from_user.id,
+                text='Можете написать еще текст или выбрать действие на кнопках.',
+                reply_markup=custom_exit_or_select_markup(),
+            ).id
+            data['high_choice_message_id'] = high_choice_message_id
 
 
 @bot.callback_query_handler(func=lambda callback: callback.data == 'image')
@@ -385,6 +430,19 @@ def voice_text_translation(message: Message) -> None:
             voice_translate=pretty_translation[1],
             voice_language=target_language
         )
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+            if data.get('voice_choice_message_id'):
+                bot.delete_message(
+                    chat_id=message.chat.id,
+                    message_id=data['voice_choice_message_id']
+                )
+
+            voice_choice_message_id = bot.send_message(
+                chat_id=message.from_user.id,
+                text='Можете написать еще текст или выбрать действие на кнопках.',
+                reply_markup=custom_exit_or_select_markup(),
+            ).id
+            data['voice_choice_message_id'] = voice_choice_message_id
 
 
 def voice_voice_synthesize(user_id: int, voice_translate: str, voice_language: str) -> None:
@@ -413,11 +471,5 @@ def voice_voice_synthesize(user_id: int, voice_translate: str, voice_language: s
 
     with open(f'{TEMP_AUDIO_PATH}{sep}audio_user_id_{user_id}.ogg', 'rb') as voice:
         bot.send_voice(user_id, voice)
-
-    bot.send_message(
-        user_id,
-        text='Можете написать еще текст или выбрать действие на кнопках.',
-        reply_markup=custom_exit_or_select_markup(),
-    )
 
     remove(path=f'{TEMP_AUDIO_PATH}{sep}audio_user_id_{user_id}.ogg')
