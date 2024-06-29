@@ -4,5 +4,5 @@ from . import main_menu
 from . import help
 
 __all__ = [
-           'welcome', 'history', 'main_menu', help
+           'welcome', 'history', 'main_menu', 'help'
            ]

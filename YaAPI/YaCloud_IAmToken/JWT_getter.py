@@ -18,7 +18,7 @@ try:
 
 except FileNotFoundError:
     exit('В директории "config_data" отстутствует файл "key.json". '
-         'Следуйте инструкциям в "readme.md", чтобы его получить')
+         'Следуйте инструкциям в "README.md", чтобы его получить')
 
 
 def jwt_request():

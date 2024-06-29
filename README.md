@@ -1,6 +1,6 @@
 # Руководство пользователя. 
 
-# *_Текущая версия -  0.9_*
+# *_Текущая версия - 1.0_*
 
 
 ## 1. Общая информация.
@@ -8,8 +8,13 @@
 Работает с API Telegram через библиотеку "telebot".
 
 Данный бот предназначен для перевода отдельных слов и текста на различные языки  
-посредством использования возможностей сервисов "Yandex.Dictionary" и "Yandex.Translate".
-В качестве дополнительных возможностей присутствуют озвучивание переводо и определение текста на изображении.
+посредством использования возможностей сервисов 
+"Yandex.Dictionary" и "Yandex.Translate".
+
+В качестве дополнительных возможностей присутствуют озвучивание переводов и определение текста на изображении
+посредством использования "Yandex.Speechkit" и "Yandex.VisionOCR"
+
+Доступ ко всем сервисам кроме "Yandex.Dictionary" обеспечивается посредством сервиса "Yandex.Cloud".
 
 ## 2. Возможности бота.
 
@@ -38,7 +43,28 @@
     4. /history - Выдача истории запросов.
     5. /help - Выдача информации по командам бота.
 
-## 3. Roadmap.
+## 3. Инструкция.
+
+1. Telegram - Получение Bot_token и регистрация бота - https://core.telegram.org/bots#how-do-i-create-a-bot
+2. Yandex.Dictionary - Получение API-ключа - https://yandex.ru/dev/dictionary/keys/get/?service=dict
+3. Yandex.Cloud - Создание сервисного аккаунта - https://yandex.cloud/ru/docs/iam/operations/sa/create#console_1
+4. Yandex.Cloud - Создание авторизованных ключей 
+(Итоговый файл должен быть назван "key.json" и помещен каталог "config_data") - 
+https://yandex.cloud/ru/docs/iam/operations/authorized-key/create
+5. Yandex.Cloud - Получение Iam-ключа с помощью JWT-токена https://yandex.cloud/ru/docs/iam/operations/iam-token/create-for-sa#via-jwt
+
+Yandex.Dictionary - Документация - https://yandex.ru/dev/dictionary/doc/dg/concepts/About.html
+
+Yandex.Cloud - Документация - https://yandex.cloud/ru/docs
+
+Yandex.Translate - Документация - https://yandex.cloud/ru/docs/translate/
+
+Yandex.Speechkit - Документация - https://yandex.cloud/ru/docs/speechkit/
+
+Yandex.VisionOCR - Документация - https://yandex.cloud/ru/docs/vision/
+
+
+## 4. Roadmap.
 
 1. [x] v.0.1 - Эхо-бот.
 - Получение токена бота.
@@ -93,6 +119,6 @@
 - Реализация команды "/help".
 - Исправление багов, "слабых мест", замечаний
 
-10. [ ] v.1 - Финальная версия.
+10. [x] v.1 - Финальная версия.
 - Внесение корректировок / исправление багов  
 по результатам тестирование бОльшим количеством пользователей.
