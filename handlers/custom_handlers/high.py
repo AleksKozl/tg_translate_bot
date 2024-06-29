@@ -443,13 +443,12 @@ def get_text_translate(message: Message) -> None:
             )
 
         with bot.retrieve_data(message.chat.id) as data:
-            if data.get('high_choice_message_id'):
-
+            if data.get('high_choice_message_id') is not None:
                 bot.edit_message_reply_markup(
                     message_id=data.get('high_choice_message_id'),
-                    chat_id=message.chat.id,
-                    reply_markup=None
+                    chat_id=message.chat.id
                 )
+                data['high_choice_message_id'] = None
 
             high_choice_message_id = bot.send_message(
                 message.chat.id,
