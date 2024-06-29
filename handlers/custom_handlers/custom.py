@@ -214,6 +214,9 @@ def custom_to_image_main(callback: CallbackQuery) -> None:
              'Но могу попробовать и с другими языками.\n'
              'Вышлите мне изображение и я напишу Вам то, что на нем нашел.',
     )
+    with bot.retrieve_data(callback.message.chat.id) as data:
+        if data.get('high_choice_message_id') is not None:
+            data['high_choice_message_id'] = None
 
     bot.set_state(callback.from_user.id, ImageAnalysis.image_sent, callback.message.chat.id)
     db_func.db_set_state(user_id=callback.from_user.id, state='image_sent')
